@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4Squared Live - ThaiPBS</title>
+    <style>
+        :root {
+            --bg: #0b0d12;
+            --panel: #12151c;
+            --border: #262b36;
+            --text: #e8eaf0;
+            --muted: #8a90a2;
+            --accent: #3ea6ff;
+            --fb: #1877f2;
+            --yt: #ff0033;
+            --x: #ffffff;
+            --tk: #25f4ee;
+            --ok: #33d17a;
+            --bad: #ff5c5c;
+            --warn: #ffb020;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", "Sarabun", Tahoma, sans-serif;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 12px 24px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .program-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .program-info .title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: 0.2px;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .program-info .meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .program-info .time,
+        .program-info .pending {
+            display: inline-flex;
+            align-items: center;
+            font-weight: 700;
+            padding: 3px 12px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .program-info .time {
+            font-size: 14px;
+            color: var(--accent);
+            background: rgba(62, 166, 255, 0.16);
+        }
+
+        .program-info .pending {
+            font-size: 13px;
+            color: var(--warn);
+            background: rgba(255, 176, 32, 0.16);
+        }
+
+        .status {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .status .led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ok);
+            display: inline-block;
+        }
+
+        .status.error .led {
+            background: var(--bad);
+        }
+
+        .grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 6px;
+            padding: 6px;
+            min-height: 0;
+        }
+
+        .cell {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .cell-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dot.fb {
+            background: var(--fb);
+        }
+
+        .dot.yt {
+            background: var(--yt);
+        }
+
+        .dot.x {
+            background: var(--x);
+        }
+
+        .dot.tk {
+            background: var(--tk);
+        }
+
+        .cell-body {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            background: #000;
+        }
+
+        .cell-body iframe,
+        .cell-body video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: none;
+            background: #000;
+            object-fit: contain;
+        }
+
+        .placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 14px;
+            text-align: center;
+            padding: 12px;
+        }
+
+        .x-link-card {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .x-link-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .x-link-note {
+            font-size: 12px;
+            color: var(--muted);
+            max-width: 320px;
+        }
+
+        .x-open-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--x);
+            color: #000;
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="topbar">
+            <div class="brand">📺 4Squared Live</div>
+            <div class="program-info" id="programInfo">กำลังโหลดข้อมูล...</div>
+            <div class="status" id="statusInfo"><span class="led"></span><span id="statusText">-</span></div>
+        </div>
+
+        <div class="grid">
+            <section class="cell">
+                <div class="cell-header"><span class="dot fb"></span>Facebook</div>
+                <div class="cell-body">
+                    <iframe id="fbFrame" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                    <div class="placeholder" id="fbPlaceholder">ยังไม่พบลิงก์ Facebook สำหรับรายการนี้</div>
+                </div>
+            </section>
+
+            <section class="cell">
+                <div class="cell-header"><span class="dot yt"></span>YouTube</div>
+                <div class="cell-body">
+                    <iframe id="ytFrame" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                    <div class="placeholder" id="ytPlaceholder">ยังไม่พบลิงก์ YouTube สำหรับรายการนี้</div>
+                </div>
+            </section>
+
+            <section class="cell">
+                <div class="cell-header"><span class="dot x"></span>X</div>
+                <div class="cell-body">
+                    <div class="x-link-card" id="xLinkCard" style="display:none;">
+                        <div class="x-link-title" id="xLinkTitle"></div>
+                        <div class="x-link-note">X ไม่อนุญาตให้ฝังวิดีโอ broadcast ในหน้าเว็บอื่น</div>
+                        <a class="x-open-btn" id="xOpenLink" href="#" target="_blank" rel="noopener noreferrer">เปิดดูใน
+                            X ↗</a>
+                    </div>
+                    <div class="placeholder" id="xPlaceholder">ยังไม่พบลิงก์ X สำหรับรายการนี้</div>
+                </div>
+            </section>
+
+            <section class="cell">
+                <div class="cell-header"><span class="dot tk"></span>Tiktok</div>
+				<iframe src="https://www.tiktok.com/embed/live/@thaipbs" width="100%" height="700" frameborder="0"
+					allow="autoplay; fullscreen" scrolling="no">
+				</iframe>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // ==== ตั้งค่า ====
+        // TODO: ใส่ URL ของ Google Apps Script Web App (/exec) ที่บรรทัดนี้ แทนที่ 'xxxxxxxxxxxxxxxxx/exec'
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxgEUzL-fQS4jjhTBAOC6ZQmhiaYwZar-wqL7Hia1rLaVRK2EWxExasFhAVddy7ws6l/exec';
+        const REFRESH_MS = 30000;
+
+        const fbFrame = document.getElementById('fbFrame');
+        const ytFrame = document.getElementById('ytFrame');
+        const fbPlaceholder = document.getElementById('fbPlaceholder');
+        const ytPlaceholder = document.getElementById('ytPlaceholder');
+        const xPlaceholder = document.getElementById('xPlaceholder');
+        const xLinkCard = document.getElementById('xLinkCard');
+        const xLinkTitle = document.getElementById('xLinkTitle');
+        const xOpenLink = document.getElementById('xOpenLink');
+        const programInfo = document.getElementById('programInfo');
+        const statusInfo = document.getElementById('statusInfo');
+        const statusText = document.getElementById('statusText');
+
+        // แปลงวันที่ (date) และเวลา (time) จาก Google Sheet ให้เป็น Date object
+        // พอร์ตมาจาก parse_schedule_datetime() ใน linkcrawler.py ให้ตรงกัน
+        function parseScheduleDateTime(dateStr, timeStr) {
+            try {
+                let dateClean = (dateStr || '').trim();
+                let timeClean = (timeStr || '').trim();
+
+                timeClean = timeClean.replace(/น\.|น/g, '').trim();
+                if (timeClean.includes('-')) {
+                    timeClean = timeClean.split('-')[0].trim();
+                }
+                timeClean = timeClean.replace(/\./g, ':');
+
+                const timeParts = timeClean.split(':');
+                if (timeParts.length < 2) return null;
+                const hour = parseInt(timeParts[0], 10);
+                const minute = parseInt(timeParts[1], 10);
+                if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+
+                dateClean = dateClean.replace(/\//g, '-');
+                const dateParts = dateClean.split('-');
+                if (dateParts.length !== 3) return null;
+
+                const p0 = parseInt(dateParts[0], 10);
+                const p1 = parseInt(dateParts[1], 10);
+                const p2 = parseInt(dateParts[2], 10);
+                if ([p0, p1, p2].some(Number.isNaN)) return null;
+
+                let year, month, day;
+                if (p0 > 2400) {
+                    year = p0 - 543; month = p1; day = p2;
+                } else if (p2 > 2400) {
+                    year = p2 - 543; month = p1; day = p0;
+                } else if (p0 > 1900) {
+                    year = p0; month = p1; day = p2;
+                } else {
+                    year = p2; month = p1; day = p0;
+                }
+
+                const dt = new Date(year, month - 1, day, hour, minute);
+                if (Number.isNaN(dt.getTime())) return null;
+                return dt;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function isValidLink(v) {
+            if (!v) return false;
+            const t = String(v).trim();
+            if (!t || t === '-' || t.toUpperCase() === 'NOT FOUND') return false;
+            return /^https?:\/\//i.test(t);
+        }
+
+        function extractYouTubeId(url) {
+            try {
+                const u = new URL(url);
+                if (u.hostname.includes('youtu.be')) {
+                    return u.pathname.slice(1).split('/')[0] || null;
+                }
+                const v = u.searchParams.get('v');
+                if (v) return v;
+                const m = u.pathname.match(/\/(?:live|embed|shorts)\/([a-zA-Z0-9_-]{6,})/);
+                if (m) return m[1];
+            } catch (e) { }
+            return null;
+        }
+
+        // เปลี่ยน src ของ iframe เฉพาะตอนที่ url เปลี่ยนจริง เพื่อไม่ให้ live เด้ง refresh ทุก 30 วิ
+        function setCellSrc(frameEl, placeholderEl, newSrc, placeholderMsg) {
+            if (!newSrc) {
+                frameEl.removeAttribute('src');
+                delete frameEl.dataset.currentSrc;
+                frameEl.style.display = 'none';
+                placeholderEl.textContent = placeholderMsg;
+                placeholderEl.style.display = 'flex';
+                return;
+            }
+            placeholderEl.style.display = 'none';
+            frameEl.style.display = 'block';
+            if (frameEl.dataset.currentSrc !== newSrc) {
+                frameEl.src = newSrc;
+                frameEl.dataset.currentSrc = newSrc;
+            }
+        }
+
+        // X ไม่อนุญาตให้ฝัง broadcast เป็น iframe จากเว็บอื่น (X-Frame-Options/CSP บล็อก)
+        // จึงแสดงเป็นการ์ดลิงก์ให้กดเปิดดูในแท็บ/หน้าต่างใหม่แทน
+        function updateXCell(xUrl, title, placeholderMsg) {
+            if (!xUrl) {
+                xLinkCard.style.display = 'none';
+                xPlaceholder.textContent = placeholderMsg;
+                xPlaceholder.style.display = 'flex';
+                return;
+            }
+            xPlaceholder.style.display = 'none';
+            xLinkCard.style.display = 'flex';
+            xLinkTitle.textContent = title || '';
+            xOpenLink.href = xUrl;
+        }
+
+        function hasAnyLink(row) {
+            return isValidLink(row.facebook_url) || isValidLink(row.youtube_url) || isValidLink(row.x_url);
+        }
+
+        // หารายการที่ควรแสดงผล: รายการล่าสุดที่ถึงเวลาออกอากาศแล้ว (date+time <= ตอนนี้)
+        // "และ" มีลิงก์อย่างน้อย 1 platform พร้อมแล้ว เพื่อไม่ให้จอว่าง/ไม่มีวิดีโอเล่นเลยระหว่างรอ
+        // linkcrawler.py เขียนลิงก์ของรายการล่าสุดกลับมา (ปกติจะมี delay ไม่กี่นาทีหลังเริ่มออกอากาศ)
+        // ถ้ารายการล่าสุดยังไม่มีลิงก์เลย จะ fallback ไปแสดงรายการก่อนหน้าที่ยังมีลิงก์อยู่แทน
+        // พร้อมส่ง pending กลับไปบอกว่ากำลังรอรายการไหนอยู่
+        function pickCurrentLive(rows) {
+            const past = [];
+            const now = new Date();
+            for (const row of rows) {
+                const dt = parseScheduleDateTime(String(row.date || ''), String(row.time || ''));
+                if (!dt || dt > now) continue;
+                past.push({ row, dt });
+            }
+            if (!past.length) return { item: null, pending: null };
+            past.sort((a, b) => b.dt - a.dt);
+
+            const latest = past[0].row;
+            const withLink = past.find(p => hasAnyLink(p.row));
+            if (!withLink) return { item: null, pending: latest };
+            if (withLink.row !== latest) return { item: withLink.row, pending: latest };
+            return { item: withLink.row, pending: null };
+        }
+
+        async function fetchSchedule() {
+            const res = await fetch(API_URL, { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const payload = await res.json();
+            if (payload.status === 'error') throw new Error(payload.message || 'API ตอบกลับ error');
+
+            // API ของจริงตอบกลับเป็น { status, total_count, data: { "<ชื่อชีท>": [...แถว...], ... } }
+            // คือ data เป็น object กลุ่มตามชื่อชีท ไม่ใช่ array ตรงๆ จึงต้องรวมทุกชีทเป็น array เดียว
+            if (Array.isArray(payload)) return payload;
+            if (Array.isArray(payload.data)) return payload.data;
+            if (payload.data && typeof payload.data === 'object') {
+                return Object.values(payload.data).flat();
+            }
+            throw new Error('รูปแบบข้อมูลจาก API ไม่ถูกต้อง (ไม่พบ data array)');
+        }
+
+        async function refresh() {
+            try {
+                const rows = await fetchSchedule();
+                const { item, pending } = pickCurrentLive(rows);
+                const pendingNote = pending
+                    ? `<span class="pending">⏳ กำลังรอลิงก์รายการ "${pending.title || ''}" ${pending.time || ''} น.</span>`
+                    : '';
+
+                if (!item) {
+                    programInfo.innerHTML = pending
+                        ? `<span class="title">ยังไม่พบลิงก์ของรายการล่าสุด</span><div class="meta-row">${pendingNote}</div>`
+                        : `<span class="title">ไม่มีรายการที่กำลังออกอากาศในขณะนี้</span>`;
+                    setCellSrc(fbFrame, fbPlaceholder, null, 'ไม่มีรายการออกอากาศ');
+                    setCellSrc(ytFrame, ytPlaceholder, null, 'ไม่มีรายการออกอากาศ');
+                    updateXCell(null, null, 'ไม่มีรายการออกอากาศ');
+                } else {
+                    programInfo.innerHTML = `<span class="title">${item.title || ''}</span><div class="meta-row"><span class="time">${item.date || ''} ${item.time || ''} น.</span>${pendingNote}</div>`;
+
+                    const fb = isValidLink(item.facebook_url) ? item.facebook_url : null;
+                    const yt = isValidLink(item.youtube_url) ? item.youtube_url : null;
+                    const x = isValidLink(item.x_url) ? item.x_url : null;
+
+                    setCellSrc(
+                        fbFrame, fbPlaceholder,
+                        fb ? `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fb)}&show_text=0&autoplay=1&mute=1` : null,
+                        'ยังไม่พบลิงก์ Facebook สำหรับรายการนี้'
+                    );
+
+                    const ytId = yt ? extractYouTubeId(yt) : null;
+                    setCellSrc(
+                        ytFrame, ytPlaceholder,
+                        ytId ? `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1` : null,
+                        'ยังไม่พบลิงก์ YouTube สำหรับรายการนี้'
+                    );
+
+                    updateXCell(x, item.title, 'ยังไม่พบลิงก์ X สำหรับรายการนี้');
+                }
+
+                statusInfo.classList.remove('error');
+                statusText.textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH');
+            } catch (e) {
+                programInfo.innerHTML = '<span class="title">ดึงข้อมูลตารางไม่สำเร็จ</span>';
+                statusInfo.classList.add('error');
+                statusText.textContent = 'ดึงข้อมูลล้มเหลว: ' + e.message;
+                console.error('[4Squared] refresh error:', e);
+            }
+        }
+
+        refresh();
+        setInterval(refresh, REFRESH_MS);
+    </script>
+</body>
+
+</html>
