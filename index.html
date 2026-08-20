@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4Squared Live - ThaiPBS</title>
+    <title>Broadcast Viewer</title>
     <style>
         :root {
             --bg: #0b0d12;
@@ -55,26 +55,31 @@
             flex-shrink: 0;
         }
 
+        .left-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+            flex: 1;
+        }
+
         .brand {
-            font-weight: 700;
-            font-size: 18px;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
+            font-size: 30px;
+            line-height: 1;
             flex-shrink: 0;
         }
 
         .program-info {
-            flex: 1;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             gap: 5px;
         }
 
         .program-info .title {
-            font-size: 24px;
+            font-size: 34px;
             font-weight: 800;
             color: var(--text);
             letter-spacing: 0.2px;
@@ -88,7 +93,7 @@
         .program-info .meta-row {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             flex-wrap: wrap;
             gap: 8px;
         }
@@ -116,7 +121,7 @@
         }
 
         .status {
-            font-size: 12px;
+            font-size: 18px;
             color: var(--muted);
             white-space: nowrap;
             display: flex;
@@ -192,23 +197,54 @@
             background: var(--tk);
         }
 
+
         .cell-body {
             position: relative;
             flex: 1;
             min-height: 0;
             background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
 
         .cell-body iframe,
         .cell-body video {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
             border: 0;
             display: none;
             background: #000;
+        }
+
+        /* YouTube คำนวณ letterbox ของวิดีโอเองภายใน player อยู่แล้ว จึงให้เต็มกรอบได้เลย */
+        .cell-body iframe#ytFrame {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Facebook / TikTok ยืด video เต็ม iframe เสมอ ต้องบังคับสัดส่วนจากภายนอกแทน */
+        .cell-body iframe#fbFrame {
+            height: 100%;
+            width: auto;
+            max-width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+
+        .cell-body iframe.tk-frame {
+            display: block;
+            height: 100%;
+            width: auto;
+            max-width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+
+        /* เล่นสตรีม X เองผ่าน hls.js (m3u8 ที่ได้จาก /api/x-stream) แทน X embed/widgets.js
+           เพื่อเลี่ยงปัญหา third-party cookies ที่ทำให้ embed ของ X โหลดไม่ขึ้น */
+        #xCellBody video {
+            width: 100%;
+            height: 100%;
             object-fit: contain;
+            background: #000;
         }
 
         .placeholder {
@@ -226,7 +262,7 @@
         .x-link-card {
             position: absolute;
             inset: 0;
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -263,8 +299,10 @@
 <body>
     <div class="app">
         <div class="topbar">
-            <div class="brand">📺 4Squared Live</div>
-            <div class="program-info" id="programInfo">กำลังโหลดข้อมูล...</div>
+            <div class="left-group">
+                <div class="brand">📺</div>
+                <div class="program-info" id="programInfo">กำลังโหลดข้อมูล...</div>
+            </div>
             <div class="status" id="statusInfo"><span class="led"></span><span id="statusText">-</span></div>
         </div>
 
@@ -287,25 +325,30 @@
 
             <section class="cell">
                 <div class="cell-header"><span class="dot x"></span>X</div>
-                <div class="cell-body">
-                    <div class="x-link-card" id="xLinkCard" style="display:none;">
-                        <div class="x-link-title" id="xLinkTitle"></div>
-                        <div class="x-link-note">X ไม่อนุญาตให้ฝังวิดีโอ broadcast ในหน้าเว็บอื่น</div>
-                        <a class="x-open-btn" id="xOpenLink" href="#" target="_blank" rel="noopener noreferrer">เปิดดูใน
-                            X ↗</a>
-                    </div>
+                <div class="cell-body" id="xCellBody">
+                    <video id="xVideo" muted autoplay playsinline></video>
                     <div class="placeholder" id="xPlaceholder">ยังไม่พบลิงก์ X สำหรับรายการนี้</div>
+                    <div class="x-link-card" id="xFallback">
+                        <div class="x-link-title">เล่นสตรีมอัตโนมัติไม่สำเร็จ</div>
+                        <div class="x-link-note" id="xFallbackNote">สตรีม X หยุดทำงาน หรือรายการจบแล้ว</div>
+                        <a class="x-open-btn" id="xFallbackLink" href="#" target="_blank" rel="noopener">เปิดใน X</a>
+                    </div>
                 </div>
             </section>
 
             <section class="cell">
                 <div class="cell-header"><span class="dot tk"></span>Tiktok</div>
-                <iframe src="https://www.tiktok.com/embed/live/@thaipbs" width="100%" height="700" frameborder="0"
-                    allow="autoplay; fullscreen" scrolling="no">
-                </iframe>
+                <div class="cell-body">
+                    <iframe class="tk-frame" src="https://www.tiktok.com/embed/live/@thaipbs" frameborder="0"
+                        allow="autoplay; fullscreen" scrolling="no">
+                    </iframe>
+                </div>
             </section>
         </div>
     </div>
+
+    <!-- เล่นสตรีม HLS (m3u8) ของ X broadcast เอง แทน X embed/widgets.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 
     <script>
         // ==== ตั้งค่า ====
@@ -317,10 +360,11 @@
         const ytFrame = document.getElementById('ytFrame');
         const fbPlaceholder = document.getElementById('fbPlaceholder');
         const ytPlaceholder = document.getElementById('ytPlaceholder');
+        const xVideo = document.getElementById('xVideo');
         const xPlaceholder = document.getElementById('xPlaceholder');
-        const xLinkCard = document.getElementById('xLinkCard');
-        const xLinkTitle = document.getElementById('xLinkTitle');
-        const xOpenLink = document.getElementById('xOpenLink');
+        const xFallback = document.getElementById('xFallback');
+        const xFallbackNote = document.getElementById('xFallbackNote');
+        const xFallbackLink = document.getElementById('xFallbackLink');
         const programInfo = document.getElementById('programInfo');
         const statusInfo = document.getElementById('statusInfo');
         const statusText = document.getElementById('statusText');
@@ -393,6 +437,17 @@
             return null;
         }
 
+        // ดึง broadcast id จาก URL รูปแบบ https://x.com/i/broadcasts/<id> (หรือ twitter.com เดิม)
+        function extractXBroadcastId(url) {
+            try {
+                const u = new URL(url);
+                const m = u.pathname.match(/\/broadcasts\/([a-zA-Z0-9]+)/);
+                return m ? m[1] : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
         // เปลี่ยน src ของ iframe เฉพาะตอนที่ url เปลี่ยนจริง เพื่อไม่ให้ live เด้ง refresh ทุก 30 วิ
         function setCellSrc(frameEl, placeholderEl, newSrc, placeholderMsg) {
             if (!newSrc) {
@@ -411,19 +466,117 @@
             }
         }
 
-        // X ไม่อนุญาตให้ฝัง broadcast เป็น iframe จากเว็บอื่น (X-Frame-Options/CSP บล็อก)
-        // จึงแสดงเป็นการ์ดลิงก์ให้กดเปิดดูในแท็บ/หน้าต่างใหม่แทน
-        function updateXCell(xUrl, title, placeholderMsg) {
-            if (!xUrl) {
-                xLinkCard.style.display = 'none';
+        // เล่นสตรีม X เองผ่าน hls.js: ขอ m3u8 จาก /api/x-stream (server.py ทำ guest token
+        // + broadcasts/show.json + live_video_stream/status ให้) แล้วให้ hls.js/เบราว์เซอร์เล่นตรง ๆ
+        let currentXBroadcastId = null;
+        let xHls = null;
+
+        function hideXFallback() {
+            xFallback.style.display = 'none';
+        }
+
+        function showXFallback(broadcastId, message) {
+            xVideo.style.display = 'none';
+            xPlaceholder.style.display = 'none';
+            xFallbackNote.textContent = message;
+            xFallbackLink.href = `https://x.com/i/broadcasts/${broadcastId}`;
+            xFallback.style.display = 'flex';
+        }
+
+        function stopXPlayback() {
+            if (xHls) {
+                xHls.destroy();
+                xHls = null;
+            }
+            xVideo.pause();
+            xVideo.removeAttribute('src');
+            xVideo.load();
+            xVideo.style.display = 'none';
+            hideXFallback();
+        }
+
+        function playXHls(broadcastId, hlsUrl) {
+            hideXFallback();
+            xPlaceholder.style.display = 'none';
+            xVideo.style.display = 'block';
+
+            if (xHls) {
+                xHls.destroy();
+                xHls = null;
+            }
+
+            let errorRetries = 0;
+
+            if (window.Hls && Hls.isSupported()) {
+                xHls = new Hls({ liveSyncDurationCount: 3 });
+                xHls.loadSource(hlsUrl);
+                xHls.attachMedia(xVideo);
+                xHls.on(Hls.Events.MANIFEST_PARSED, function () {
+                    xVideo.play().catch(() => { });
+                });
+                xHls.on(Hls.Events.FRAG_LOADED, function () {
+                    errorRetries = 0;
+                });
+                xHls.on(Hls.Events.ERROR, function (event, data) {
+                    if (!data.fatal) return;
+                    errorRetries++;
+                    console.error('[4Squared] X hls.js fatal error:', data.type, data.details, 'retry', errorRetries);
+                    if (errorRetries > 3) {
+                        showXFallback(broadcastId, 'สตรีม X หยุดทำงาน หรือรายการจบแล้ว');
+                        return;
+                    }
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        xHls.startLoad();
+                    } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                        xHls.recoverMediaError();
+                    } else {
+                        showXFallback(broadcastId, 'สตรีม X หยุดทำงาน หรือรายการจบแล้ว');
+                    }
+                });
+            } else if (xVideo.canPlayType('application/vnd.apple.mpegurl')) {
+                xVideo.src = hlsUrl;
+                xVideo.addEventListener('loadedmetadata', function () {
+                    xVideo.play().catch(() => { });
+                }, { once: true });
+            } else {
+                showXFallback(broadcastId, 'เบราว์เซอร์นี้ไม่รองรับการเล่น HLS');
+            }
+        }
+
+        async function loadXBroadcast(broadcastId) {
+            try {
+                const res = await fetch(`/api/x-stream?broadcast_id=${encodeURIComponent(broadcastId)}`, { cache: 'no-store' });
+                const payload = await res.json();
+                if (!res.ok || !payload.hls_url) {
+                    throw new Error(payload.error || 'ไม่พบสตรีม');
+                }
+                if (broadcastId !== currentXBroadcastId) return; // เปลี่ยนรายการไปแล้วระหว่างรอ fetch
+                playXHls(broadcastId, payload.hls_url);
+            } catch (e) {
+                console.error('[4Squared] X stream error:', e);
+                if (broadcastId === currentXBroadcastId) {
+                    showXFallback(broadcastId, 'เล่นสตรีม X อัตโนมัติไม่สำเร็จ (' + e.message + ')');
+                }
+            }
+        }
+
+        // เริ่มโหลดสตรีมใหม่เฉพาะตอน broadcast id เปลี่ยนจริง เพื่อไม่ให้ live เด้ง refresh ทุก 30 วิ
+        function setXBroadcast(broadcastId, placeholderMsg) {
+            if (!broadcastId) {
+                currentXBroadcastId = null;
+                stopXPlayback();
                 xPlaceholder.textContent = placeholderMsg;
                 xPlaceholder.style.display = 'flex';
                 return;
             }
-            xPlaceholder.style.display = 'none';
-            xLinkCard.style.display = 'flex';
-            xLinkTitle.textContent = title || '';
-            xOpenLink.href = xUrl;
+            if (broadcastId === currentXBroadcastId) return;
+            currentXBroadcastId = broadcastId;
+
+            hideXFallback();
+            xVideo.style.display = 'none';
+            xPlaceholder.textContent = 'กำลังโหลดสตรีม X...';
+            xPlaceholder.style.display = 'flex';
+            loadXBroadcast(broadcastId);
         }
 
         function hasAnyLink(row) {
@@ -483,7 +636,7 @@
                         : `<span class="title">ไม่มีรายการที่กำลังออกอากาศในขณะนี้</span>`;
                     setCellSrc(fbFrame, fbPlaceholder, null, 'ไม่มีรายการออกอากาศ');
                     setCellSrc(ytFrame, ytPlaceholder, null, 'ไม่มีรายการออกอากาศ');
-                    updateXCell(null, null, 'ไม่มีรายการออกอากาศ');
+                    setXBroadcast(null, 'ไม่มีรายการออกอากาศ');
                 } else {
                     programInfo.innerHTML = `<span class="title">${item.title || ''}</span><div class="meta-row"><span class="time">${item.date || ''} ${item.time || ''} น.</span>${pendingNote}</div>`;
 
@@ -504,7 +657,8 @@
                         'ยังไม่พบลิงก์ YouTube สำหรับรายการนี้'
                     );
 
-                    updateXCell(x, item.title, 'ยังไม่พบลิงก์ X สำหรับรายการนี้');
+                    const xBroadcastId = x ? extractXBroadcastId(x) : null;
+                    setXBroadcast(xBroadcastId, 'ยังไม่พบลิงก์ X สำหรับรายการนี้');
                 }
 
                 statusInfo.classList.remove('error');
